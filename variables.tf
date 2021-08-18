@@ -23,6 +23,12 @@ variable "container_definitions" {
   description = "A list of valid container definitions provided as a single valid JSON document."
 }
 
+variable "ecs_launch_type" {
+  default     = "FARGATE"
+  description = "The ECS launch type for the CloudWatch target."
+  type        = string
+}
+
 variable "is_enabled" {
   default     = true
   type        = string
