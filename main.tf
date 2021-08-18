@@ -27,31 +27,63 @@ resource "aws_cloudwatch_event_target" "default" {
   role_arn  = var.create_ecs_events_role ? join("", aws_iam_role.ecs_events.*.arn) : var.ecs_events_role_arn
 
   # Contains the Amazon ECS task definition and task count to be used, if the event target is an Amazon ECS task.
+  # This is the `ecs_target` block for an EC2 target.
   # https://docs.aws.amazon.com/AmazonCloudWatchEvents/latest/APIReference/API_EcsParameters.html
-  ecs_target {
-    launch_type         = var.ecs_launch_type
-    task_count          = var.task_count
-    task_definition_arn = aws_ecs_task_definition.default[0].arn
+  dynamic "ecs_target" {
+    for_each = var.ecs_launch_type == "EC2" ? [1] : []
+    content {
+      launch_type         = var.ecs_launch_type
+      task_count          = var.task_count
+      task_definition_arn = aws_ecs_task_definition.default[0].arn
 
-    # Specifies the platform version for the task. Specify only the numeric portion of the platform version, such as 1.1.0.
-    # This structure is used only if LaunchType is FARGATE.
-    # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html
-    platform_version = var.platform_version
+      # This structure specifies the VPC subnets and security groups for the task, and whether a public IP address is to be used.
+      # This structure is relevant only for ECS tasks that use the awsvpc network mode.
+      # https://docs.aws.amazon.com/AmazonCloudWatchEvents/latest/APIReference/API_AwsVpcConfiguration.html
+      network_configuration {
+        assign_public_ip = var.assign_public_ip
 
-    # This structure specifies the VPC subnets and security groups for the task, and whether a public IP address is to be used.
-    # This structure is relevant only for ECS tasks that use the awsvpc network mode.
-    # https://docs.aws.amazon.com/AmazonCloudWatchEvents/latest/APIReference/API_AwsVpcConfiguration.html
-    network_configuration {
-      assign_public_ip = var.assign_public_ip
+        # Specifies the security groups associated with the task. These security groups must all be in the same VPC.
+        # You can specify as many as five security groups. If you do not specify a security group,
+        # the default security group for the VPC is used.
+        security_groups = var.security_groups
 
-      # Specifies the security groups associated with the task. These security groups must all be in the same VPC.
-      # You can specify as many as five security groups. If you do not specify a security group,
-      # the default security group for the VPC is used.
-      security_groups = var.security_groups
+        # Specifies the subnets associated with the task. These subnets must all be in the same VPC.
+        # You can specify as many as 16 subnets.
+        subnets = var.subnets
+      }
+    }
+  }
 
-      # Specifies the subnets associated with the task. These subnets must all be in the same VPC.
-      # You can specify as many as 16 subnets.
-      subnets = var.subnets
+  # Contains the Amazon ECS task definition and task count to be used, if the event target is an Amazon ECS task.
+  # This is the `ecs_target` block for a FARGATE target.
+  # https://docs.aws.amazon.com/AmazonCloudWatchEvents/latest/APIReference/API_EcsParameters.html
+  dynamic "ecs_target" {
+    for_each = var.ecs_launch_type == "FARGATE" ? [1] : []
+    content {
+      launch_type         = var.ecs_launch_type
+      task_count          = var.task_count
+      task_definition_arn = aws_ecs_task_definition.default[0].arn
+
+      # Specifies the platform version for the task. Specify only the numeric portion of the platform version, such as 1.1.0.
+      # This structure is used only if LaunchType is FARGATE.
+      # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/platform_versions.html
+      platform_version = var.platform_version
+
+      # This structure specifies the VPC subnets and security groups for the task, and whether a public IP address is to be used.
+      # This structure is relevant only for ECS tasks that use the awsvpc network mode.
+      # https://docs.aws.amazon.com/AmazonCloudWatchEvents/latest/APIReference/API_AwsVpcConfiguration.html
+      network_configuration {
+        assign_public_ip = var.assign_public_ip
+
+        # Specifies the security groups associated with the task. These security groups must all be in the same VPC.
+        # You can specify as many as five security groups. If you do not specify a security group,
+        # the default security group for the VPC is used.
+        security_groups = var.security_groups
+
+        # Specifies the subnets associated with the task. These subnets must all be in the same VPC.
+        # You can specify as many as 16 subnets.
+        subnets = var.subnets
+      }
     }
   }
 }

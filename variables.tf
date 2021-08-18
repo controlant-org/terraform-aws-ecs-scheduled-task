@@ -27,6 +27,11 @@ variable "ecs_launch_type" {
   default     = "FARGATE"
   description = "The ECS launch type for the CloudWatch target."
   type        = string
+
+  validation {
+    condition     = contains(["EC2", "FARGATE"], var.ecs_launch_type)
+    error_message = "ECS Launch Type must be one of: 'EC2', 'FARGATE'."
+  }
 }
 
 variable "is_enabled" {
